@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Khảo Thí Đa Dạng - Hệ Thống Tạo Đề Thi Chuẩn Sư Phạm (100% Offline)</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Top Navigation -->
+    <header class="top-nav">
+        <div class="nav-container">
+            <div class="brand">
+                <div class="brand-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="brand-title">AI KHẢO THÍ <span class="brand-badge">OFFLINE</span></div>
+                    <div class="brand-subtitle">Hệ thống tạo đề trắc nghiệm chuẩn 4 trụ cột khảo thí</div>
+                </div>
+            </div>
+
+            <div class="system-pills">
+                <div class="pill pill-hardware" title="Tối ưu cho Intel Core i5-14500 và 16GB RAM">
+                    <span class="dot dot-blue"></span>
+                    <span>i5-14500 (14C/20T) &bull; 16GB RAM</span>
+                </div>
+                <div class="pill pill-status" id="llmStatusPill" title="Tình trạng kết nối Local LLM 127.0.0.1:5001">
+                    <span class="dot dot-amber" id="statusDot"></span>
+                    <span id="statusText">Đang kiểm tra LLM...</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container">
+        <!-- Progress Stepper -->
+        <div class="stepper-card">
+            <div class="step-item active" id="step1Indicator">
+                <div class="step-number">1</div>
+                <div class="step-label">Tài liệu nguồn</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step-item" id="step2Indicator">
+                <div class="step-number">2</div>
+                <div class="step-label">Ma trận đề thi</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step-item" id="step3Indicator">
+                <div class="step-number">3</div>
+                <div class="step-label">Phân đoạn & Sinh câu</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step-item" id="step4Indicator">
+                <div class="step-number">4</div>
+                <div class="step-label">Kiểm định & Xuất Word</div>
+            </div>
+        </div>
+
+        <!-- Banner Thông tin Khảo thí -->
+        <section class="banner-card">
+            <div class="banner-grid">
+                <div class="banner-col">
+                    <span class="tag tag-indigo">22 Nguyên tắc Haladyna</span>
+                    <p>Stem độc lập, phương án đồng nhất, không phủ định kép, không có "Tất cả các ý trên".</p>
+                </div>
+                <div class="banner-col">
+                    <span class="tag tag-emerald">Đủ 7 Dạng Câu Hỏi</span>
+                    <p>MCQ 4 lựa chọn, Đúng/Sai đa ý (2025), Trả lời ngắn, MSQ, Ghép đôi, Đục lỗ, Sắp xếp thứ tự.</p>
+                </div>
+                <div class="banner-col">
+                    <span class="tag tag-purple">4 Mức Bloom Sửa Đổi</span>
+                    <p>Nhận biết (Remember), Thông hiểu (Understand), Vận dụng (Apply), Vận dụng cao (Analyze/Evaluate).</p>
+                </div>
+                <div class="banner-col">
+                    <span class="tag tag-amber">Zero-Hallucination</span>
+                    <p>Thẻ kiểm định Double-Check trích dẫn nguyên văn từng câu chữ làm bằng chứng pháp lý.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- BƯỚC 1: TẢI TÀI LIỆU NGUỒN -->
+        <section class="card" id="sectionUpload">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="icon-circle">📄</span>
+                    <h3>Bước 1: Nạp tài liệu ngữ liệu nguồn (Input Ingestion)</h3>
+                </div>
+                <div class="card-actions">
+                    <button class="btn btn-ghost btn-sm" id="btnSampleDoc">💡 Tải tài liệu mẫu</button>
+                </div>
+            </div>
+
+            <!-- Tab Tải file hoặc Dán văn bản -->
+            <div class="tab-header">
+                <button class="tab-btn active" id="tabUploadFile">Kéo thả tệp (.docx, .pdf, .txt)</button>
+                <button class="tab-btn" id="tabPasteText">Dán văn bản trực tiếp</button>
+            </div>
+
+            <!-- Khối Kéo thả tệp -->
+            <div class="tab-body" id="tabContentUpload">
+                <div class="drop-zone" id="dropZone">
+                    <input type="file" id="fileInput" accept=".docx,.pdf,.txt,.md" style="display: none;">
+                    <div class="drop-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                        </svg>
+                    </div>
+                    <div class="drop-title">Kéo & Thả tệp Word (.docx), PDF hoặc Text vào đây</div>
+                    <div class="drop-subtitle">hoặc nhấn để duyệt tệp từ máy tính</div>
+                    <div class="drop-formats">Hỗ trợ .docx, .pdf, .txt &bull; Xử lý 100% Offline cục bộ</div>
+                </div>
+            </div>
+
+            <!-- Khối Dán văn bản -->
+            <div class="tab-body hidden" id="tabContentPaste">
+                <textarea class="textarea-field" id="directTextInput" rows="8" placeholder="Dán nội dung giáo trình, tài liệu ôn tập, bài giảng hoặc câu hỏi cần bóc tách vào đây..."></textarea>
+                <div class="text-right mt-2">
+                    <button class="btn btn-secondary btn-sm" id="btnProcessDirectText">Bóc tách văn bản dán</button>
+                </div>
+            </div>
+
+            <!-- Kết quả nạp tài liệu -->
+            <div class="doc-summary-card hidden" id="docSummaryCard">
+                <div class="summary-meta">
+                    <div class="summary-icon">📑</div>
+                    <div>
+                        <div class="summary-filename" id="sumFileName">Tài liệu.docx</div>
+                        <div class="summary-details">
+                            <span id="sumWordCount">0 từ</span> &bull;
+                            <span id="sumCharCount">0 ký tự</span> &bull;
+                            <span id="sumChunkCount">0 chủ đề phân đoạn</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="summary-badges" id="sumHeadingsList">
+                    <!-- Badges phân đoạn chủ đề -->
+                </div>
+            </div>
+        </section>
+
+        <!-- BƯỚC 2: CẤU HÌNH MA TRẬN ĐỀ THI -->
+        <section class="card" id="sectionMatrix">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="icon-circle">🎯</span>
+                    <h3>Bước 2: Cấu hình Ma trận Khảo thí (Matrix Configurator)</h3>
+                </div>
+                <div class="preset-group">
+                    <span class="text-muted text-sm mr-2">Ma trận mẫu:</span>
+                    <button class="btn btn-xs btn-outline active-preset" id="presetGDDT">Bộ GD&ĐT 2025</button>
+                    <button class="btn btn-xs btn-outline" id="presetReview">Ôn tập cơ bản</button>
+                    <button class="btn btn-xs btn-outline" id="presetDGNL">Đánh giá năng lực</button>
+                </div>
+            </div>
+
+            <div class="grid-2-col">
+                <!-- Cột trái: Số lượng & Tỷ lệ Bloom -->
+                <div class="config-box">
+                    <div class="form-group">
+                        <label for="totalQuestionsInput" class="form-label font-bold">
+                            Tổng số câu hỏi cần tạo:
+                            <span class="badge badge-primary" id="totalQuestionsDisplay">10 câu</span>
+                        </label>
+                        <input type="range" class="range-slider" id="totalQuestionsInput" min="4" max="40" value="10" step="1">
+                        <div class="slider-scale">
+                            <span>4 câu</span>
+                            <span>10 câu</span>
+                            <span>20 câu</span>
+                            <span>40 câu</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group mt-4">
+                        <div class="bloom-header">
+                            <span class="form-label font-bold">Tỷ lệ Thang nhận thức Bloom sửa đổi:</span>
+                            <span class="badge" id="bloomTotalBadge">Tổng: 100%</span>
+                        </div>
+
+                        <div class="bloom-slider-row">
+                            <div class="bloom-label-wrapper">
+                                <span class="bloom-dot dot-nhanbiet"></span>
+                                <span class="bloom-name">Nhận biết</span>
+                            </div>
+                            <input type="range" class="range-slider bloom-slider" id="sliderNhanBiet" min="0" max="100" value="40" step="5">
+                            <span class="bloom-val" id="valNhanBiet">40%</span>
+                        </div>
+
+                        <div class="bloom-slider-row">
+                            <div class="bloom-label-wrapper">
+                                <span class="bloom-dot dot-thonghieu"></span>
+                                <span class="bloom-name">Thông hiểu</span>
+                            </div>
+                            <input type="range" class="range-slider bloom-slider" id="sliderThongHieu" min="0" max="100" value="30" step="5">
+                            <span class="bloom-val" id="valThongHieu">30%</span>
+                        </div>
+
+                        <div class="bloom-slider-row">
+                            <div class="bloom-label-wrapper">
+                                <span class="bloom-dot dot-vandung"></span>
+                                <span class="bloom-name">Vận dụng</span>
+                            </div>
+                            <input type="range" class="range-slider bloom-slider" id="sliderVanDung" min="0" max="100" value="20" step="5">
+                            <span class="bloom-val" id="valVanDung">20%</span>
+                        </div>
+
+                        <div class="bloom-slider-row">
+                            <div class="bloom-label-wrapper">
+                                <span class="bloom-dot dot-vandungcao"></span>
+                                <span class="bloom-name">Vận dụng cao</span>
+                            </div>
+                            <input type="range" class="range-slider bloom-slider" id="sliderVanDungCao" min="0" max="100" value="10" step="5">
+                            <span class="bloom-val" id="valVanDungCao">10%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cột phải: 7 Dạng câu hỏi trắc nghiệm -->
+                <div class="config-box">
+                    <div class="form-group">
+                        <div class="flex-between">
+                            <label class="form-label font-bold">Chọn các dạng câu hỏi trắc nghiệm:</label>
+                            <span class="text-xs text-muted">Tích chọn tối thiểu 1 dạng</span>
+                        </div>
+
+                        <div class="types-grid">
+                            <label class="type-card">
+                                <input type="checkbox" name="qType" value="mcq" checked>
+                                <div class="type-card-content">
+                                    <div class="type-name">1. MCQ 4 lựa chọn</div>
+                                    <div class="type-desc">A, B, C, D - Đúng 1 phương án đơn nhất</div>
+                                </div>
+                            </label>
+
+                            <label class="type-card">
+                                <input type="checkbox" name="qType" value="compound_tf" checked>
+                                <div class="type-card-content">
+                                    <div class="type-name">2. Đúng/Sai đa ý (2025)</div>
+                                    <div class="type-desc">1 ngữ cảnh + 4 mệnh đề độc lập a, b, c, d</div>
+                                </div>
+                            </label>
+
+                            <label class="type-card">
+                                <input type="checkbox" name="qType" value="short_answer" checked>
+                                <div class="type-card-content">
+                                    <div class="type-name">3. Trả lời ngắn (Keyfill)</div>
+                                    <div class="type-desc">Số liệu, thuật ngữ ngắn 3-5 từ trong bài</div>
+                                </div>
+                            </label>
+
+                            <label class="type-card">
+                                <input type="checkbox" name="qType" value="msq" checked>
+                                <div class="type-card-content">
+                                    <div class="type-name">4. Nhiều đáp án đúng (MSQ)</div>
+                                    <div class="type-desc">5-6 lựa chọn, chọn 2 hoặc 3 đáp án đúng</div>
+                                </div>
+                            </label>
+
+                            <label class="type-card">
+                                <input type="checkbox" name="qType" value="matching" checked>
+                                <div class="type-card-content">
+                                    <div class="type-name">5. Ghép đôi / Nối cột</div>
+                                    <div class="type-desc">Cột 1 ghép Cột 2 (Cột 2 nhiều hơn Cột 1)</div>
+                                </div>
+                            </label>
+
+                            <label class="type-card">
+                                <input type="checkbox" name="qType" value="cloze" checked>
+                                <div class="type-card-content">
+                                    <div class="type-name">6. Điền khuyết / Đục lỗ</div>
+                                    <div class="type-desc">Trích đoạn đục lỗ vị trí (1), (2), (3)</div>
+                                </div>
+                            </label>
+
+                            <label class="type-card">
+                                <input type="checkbox" name="qType" value="sequencing" checked>
+                                <div class="type-card-content">
+                                    <div class="type-name">7. Sắp xếp thứ tự</div>
+                                    <div class="type-desc">Xác định trình tự các bước/sự kiện xáo trộn</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nút bắt đầu sinh câu hỏi -->
+            <div class="action-footer">
+                <button class="btn btn-primary btn-lg" id="btnStartGenerate" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                    <span>Khởi tạo câu hỏi theo ma trận</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- BƯỚC 3: TIẾN TRÌNH XỬ LÝ -->
+        <section class="card hidden" id="sectionProgress">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="icon-circle spin">⚙️</span>
+                    <h3>Đang phân tích ngữ nghĩa và tạo câu hỏi...</h3>
+                </div>
+                <div class="badge badge-info" id="progressStatusBadge">Đang xử lý</div>
+            </div>
+
+            <div class="progress-bar-wrapper">
+                <div class="progress-bar-fill" id="progressBarFill" style="width: 15%;"></div>
+            </div>
+
+            <div class="progress-status-row">
+                <span id="progressMessage">Đang đọc hiểu và phân đoạn cấu trúc ngữ liệu...</span>
+                <span id="progressPercent">15%</span>
+            </div>
+
+            <div class="terminal-log" id="terminalLog">
+                <div class="log-line">[SYSTEM] Khởi động luồng xử lý khảo thí cục bộ...</div>
+            </div>
+        </section>
+
+        <!-- BƯỚC 4: DUYỆT ĐỀ & THẺ KIỂM ĐỊNH (DOUBLE-CHECK) -->
+        <section class="card hidden" id="sectionReview">
+            <div class="card-header flex-wrap">
+                <div>
+                    <div class="card-title">
+                        <span class="icon-circle">✅</span>
+                        <h3>Bước 4: Duyệt đề & Thẻ kiểm định (Double-Check Cards)</h3>
+                    </div>
+                    <div class="text-sm text-muted">
+                        Tích chọn các câu hỏi đạt chuẩn khảo thí để xuất file Word chính thức.
+                    </div>
+                </div>
+
+                <div class="review-toolbar">
+                    <button class="btn btn-sm btn-outline" id="btnSelectAll">Chọn tất cả</button>
+                    <button class="btn btn-sm btn-outline" id="btnDeselectAll">Bỏ chọn tất cả</button>
+                    <div class="divider-v"></div>
+                    <span class="selected-counter" id="selectedCountDisplay">Đã chọn: 0/0 câu</span>
+                    <button class="btn btn-success btn-md" id="btnOpenExportModal">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                        </svg>
+                        <span>Xuất Đề Thi Word (.docx)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bộ lọc câu hỏi -->
+            <div class="filters-bar">
+                <div class="filter-item">
+                    <span>Lọc dạng câu:</span>
+                    <select class="select-field" id="filterTypeSelect">
+                        <option value="all">Tất cả 7 dạng</option>
+                        <option value="mcq">MCQ 4 lựa chọn</option>
+                        <option value="compound_tf">Đúng/Sai đa ý</option>
+                        <option value="short_answer">Trả lời ngắn</option>
+                        <option value="msq">Nhiều đáp án đúng</option>
+                        <option value="matching">Ghép đôi / Nối cột</option>
+                        <option value="cloze">Điền khuyết / Đục lỗ</option>
+                        <option value="sequencing">Sắp xếp thứ tự</option>
+                    </select>
+                </div>
+
+                <div class="filter-item">
+                    <span>Lọc mức Bloom:</span>
+                    <select class="select-field" id="filterBloomSelect">
+                        <option value="all">Tất cả mức Bloom</option>
+                        <option value="Nhận biết">Nhận biết</option>
+                        <option value="Thông hiểu">Thông hiểu</option>
+                        <option value="Vận dụng">Vận dụng</option>
+                        <option value="Vận dụng cao">Vận dụng cao</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Danh sách câu hỏi hiển thị kèm Thẻ kiểm định -->
+            <div class="questions-list" id="questionsListContainer">
+                <!-- Sẽ được render động qua app.js -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal Xuất Đề Thi Word (.docx) -->
+    <div class="modal-overlay hidden" id="exportModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Thiết lập thông tin Đề thi Word (.docx)</h3>
+                <button class="btn-close" id="btnCloseModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group mb-3">
+                    <label class="form-label">Tên Trường / Cơ sở đào tạo:</label>
+                    <input type="text" class="input-field" id="exportSchoolName" value="TRƯỜNG THPT CHUYÊN KHẢO THÍ">
+                </div>
+                <div class="grid-2-col mb-3">
+                    <div class="form-group">
+                        <label class="form-label">Tên Kỳ thi / Khảo sát:</label>
+                        <input type="text" class="input-field" id="exportExamTitle" value="ĐỀ THI KHẢO SÁT CHẤT LƯỢNG HỌC KỲ">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Môn học / Chuyên đề:</label>
+                        <input type="text" class="input-field" id="exportSubject" value="NGÂN HÀNG CÂU HỎI TRẮC NGHIỆM">
+                    </div>
+                </div>
+                <div class="grid-2-col mb-3">
+                    <div class="form-group">
+                        <label class="form-label">Thời gian làm bài:</label>
+                        <input type="text" class="input-field" id="exportDuration" value="45 phút">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Mã đề thi:</label>
+                        <input type="text" class="input-field" id="exportExamCode" value="101">
+                    </div>
+                </div>
+                <div class="info-box-dual-part">
+                    <div class="info-icon">💡</div>
+                    <div class="text-sm">
+                        <strong>Quy chuẩn xuất file Word 2 phần:</strong><br>
+                        - <strong>Phần 1</strong>: Đề thi dành cho học sinh (trình bày trang nghiêm, không lộ đáp án).<br>
+                        - <strong>Phần 2</strong>: Đáp án & Bảng kiểm định (Double-Check) trích nguyên văn dành cho giáo viên.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" id="btnCancelExport">Hủy</button>
+                <button class="btn btn-primary" id="btnConfirmExport">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                    </svg>
+                    <span>Tải file Word (.docx) ngay</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast hidden" id="toastNotification">
+        <span id="toastMessage">Thông báo</span>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/app.js"></script>
+</body>
+</html>
